@@ -63,7 +63,7 @@ export default function CreatePage() {
         ...(form.notes.trim() && { notes: form.notes.trim() }),
       };
 
-      const res = await fetch("/api/workouts", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workouts`,  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

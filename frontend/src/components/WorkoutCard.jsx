@@ -24,7 +24,7 @@ export default function WorkoutCard({ workout, onDelete, onUpdate }) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/workouts/${currentWorkout._id}`, { method: "DELETE" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${currentWorkout._id}`, { method: "DELETE" });
       if (res.ok) onDelete(currentWorkout._id);
       else setDeleting(false);
     } catch {

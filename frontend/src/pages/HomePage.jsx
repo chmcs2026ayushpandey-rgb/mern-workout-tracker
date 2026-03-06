@@ -10,7 +10,7 @@ export default function HomePage() {
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    fetch("/api/workouts")
+    fetch(`${import.meta.env.VITE_API_URL}/workouts`)
       .then((r) => r.json())
       .then((data) => { setWorkouts(data); setLoading(false); })
       .catch(() => { setError("Failed to load workouts"); setLoading(false); });

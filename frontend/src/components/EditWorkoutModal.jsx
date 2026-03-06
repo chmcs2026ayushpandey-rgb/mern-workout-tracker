@@ -74,7 +74,7 @@ export default function EditWorkoutModal({ workout, onClose, onSave }) {
         notes: form.notes.trim() || undefined,
       };
 
-      const res = await fetch(`/api/workouts/${workout._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/workouts/${workout._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
