@@ -47,13 +47,34 @@ export const formatDate = (date) => new Date(date).toLocaleDateString();
 
 export const getErrorMessage = (err, fallback = "Something went wrong") =>
   err.response?.data?.message || err.message || fallback;
-// Total volume (kg × reps across all sets)
+
+// Total volume for one workout: sum of weight × reps across all sets (kg)
 export const calcVolume = (workout) =>
   (workout.exercises || []).reduce(
     (total, ex) => total + ex.sets.reduce((s, set) => s + set.weight * set.reps, 0),
     0
   );
 
-// Heaviest weight lifted in any set
+// Heaviest weight lifted in any set of one workout (kg)
 export const calcMaxWeight = (workout) =>
   Math.max(0, ...(workout.exercises || []).flatMap((ex) => ex.sets.map((s) => s.weight)));
+
+// Distinct exercise names across all workouts, alphabetical
+export const getExerciseNames = (workouts) =>
+  [...new Set(workouts.flatMap((w) => (w.exercises || []).map((e) => e.name)))].sort();
+
+// One point per workout that included the exercise, oldest first
+export const getExerciseProgress = (workouts, name) =>
+  workouts
+    .filter((w) => (w.exercises || []).some((e) => e.name === name))
+    .map((w) => {
+      const ex = w.exercises.find((e) => e.name === name);
+      const time = new Date(w.date);
+      return {
+        date: time.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+        timestamp: time.getTime(),
+        maxWeight: Math.max(0, ...ex.sets.map((s) => s.weight)),
+        volume: ex.sets.reduce((s, set) => s + set.weight * set.reps, 0),
+      };
+    })
+    .sort((a, b) => a.timestamp - b.timestamp);

@@ -2,7 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/axios";
 import { useToast } from "../context/ToastContext";
-import { TYPE_COLORS, TYPE_ICONS, formatDate, getErrorMessage } from "../lib/utils";
+import {
+  TYPE_COLORS,
+  TYPE_ICONS,
+  formatDate,
+  getErrorMessage,
+  calcVolume,
+  calcMaxWeight,
+} from "../lib/utils";
 import EditWorkoutModal from "./EditWorkoutModal";
 
 export default function WorkoutCard({ workout, onDelete, onUpdate }) {
@@ -10,6 +17,9 @@ export default function WorkoutCard({ workout, onDelete, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const color = TYPE_COLORS[workout.type] || TYPE_COLORS.Other;
+  const volume = calcVolume(workout);
+  const maxWeight = calcMaxWeight(workout);
+  const hasExercises = (workout.exercises || []).length > 0;
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this workout?")) return;
@@ -51,7 +61,21 @@ export default function WorkoutCard({ workout, onDelete, onUpdate }) {
         <Stat label="Duration" value={`${workout.duration} min`} />
         {workout.distance != null && <Stat label="Distance" value={`${workout.distance} km`} />}
         {workout.calories != null && <Stat label="Calories" value={`${workout.calories} kcal`} />}
+        {hasExercises && <Stat label="Volume" value={`${volume.toLocaleString()} kg`} />}
+        {hasExercises && <Stat label="Top set" value={`${maxWeight} kg`} />}
       </div>
+
+      {hasExercises && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {workout.exercises.map((ex, i) => (
+            <div key={i} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.55)" }}>
+              <span style={{ color: "#fff", fontWeight: 700 }}>{ex.name}</span> · {ex.sets.length}{" "}
+              {ex.sets.length === 1 ? "set" : "sets"} · best{" "}
+              {Math.max(0, ...ex.sets.map((s) => s.weight))} kg
+            </div>
+          ))}
+        </div>
+      )}
 
       {workout.notes && (
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", lineHeight: 1.5 }}>
@@ -106,4 +130,3 @@ const buttonStyle = (color) => ({
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.1)",
 });
- 
