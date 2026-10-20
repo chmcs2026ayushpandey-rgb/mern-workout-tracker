@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -11,6 +12,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true, select: false },
+
+    favorites: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

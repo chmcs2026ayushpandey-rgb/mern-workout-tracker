@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import api from "../lib/axios";
 
 const styles = {
@@ -93,14 +94,29 @@ const styles = {
     fontWeight: 700,
     cursor: "pointer",
   },
+  secondaryButton: {
+    background: "#13131f",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "#fff",
+    borderRadius: "10px",
+    padding: "10px 16px",
+    fontFamily: "inherit",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
 };
 
 export default function ExerciseLibraryPage() {
   const [exercises, setExercises] = useState([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [favoriteLoading, setFavoriteLoading] = useState({});
   const [error, setError] = useState("");
+  const [favoriteError, setFavoriteError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -140,11 +156,99 @@ export default function ExerciseLibraryPage() {
     };
   }, [search, category]);
 
-  const categories = [
-    ...new Set(
-      exercises.map((exercise) => exercise.category).filter(Boolean)
-    ),
-  ];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchFavorites() {
+      setFavoritesLoading(true);
+      setFavoriteError("");
+
+      try {
+        const response = await api.get("/favorites");
+        const saved = response.data.favorites || [];
+
+        if (!cancelled) {
+          setFavorites(saved.map(String));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setFavoriteError(
+            err.response?.data?.message ||
+              "Unable to load favorites. Please try again."
+          );
+        }
+      } finally {
+        if (!cancelled) setFavoritesLoading(false);
+      }
+    }
+
+    fetchFavorites();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categories = useMemo(
+    () => [
+      ...new Set(
+        exercises.map((exercise) => exercise.category).filter(Boolean)
+      ),
+    ],
+    [exercises]
+  );
+
+  const displayedExercises = useMemo(() => {
+    if (!showFavoritesOnly) return exercises;
+
+    return exercises.filter((exercise) =>
+      favorites.includes(String(exercise.id ?? exercise._id))
+    );
+  }, [exercises, favorites, showFavoritesOnly]);
+
+  const toggleFavorite = async (exercise) => {
+    const exerciseId = String(exercise.id ?? exercise._id ?? "");
+    if (!exerciseId) {
+      setFavoriteError("This exercise has no valid ID.");
+      return;
+    }
+
+    const isFavorite = favorites.includes(exerciseId);
+
+    setFavoriteLoading((previous) => ({
+      ...previous,
+      [exerciseId]: true,
+    }));
+    setFavoriteError("");
+
+    try {
+      const response = isFavorite
+        ? await api.delete(
+            `/favorites/${encodeURIComponent(exerciseId)}`
+          )
+        : await api.post(
+            `/favorites/${encodeURIComponent(exerciseId)}`
+          );
+
+      setFavorites((response.data.favorites || []).map(String));
+    } catch (err) {
+      setFavoriteError(
+        err.response?.data?.message ||
+          "Could not update favorites. Please try again."
+      );
+    } finally {
+      setFavoriteLoading((previous) => ({
+        ...previous,
+        [exerciseId]: false,
+      }));
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("");
+    setShowFavoritesOnly(false);
+  };
 
   return (
     <div style={styles.page}>
@@ -224,13 +328,58 @@ export default function ExerciseLibraryPage() {
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={() => setShowFavoritesOnly((previous) => !previous)}
+            aria-pressed={showFavoritesOnly}
+            style={
+              showFavoritesOnly ? styles.button : styles.secondaryButton
+            }
+          >
+            {showFavoritesOnly ? "♥ Showing Favorites" : "♡ Favorites"}
+          </button>
         </section>
+
+        {favoriteError && (
+          <div
+            role="alert"
+            style={{
+              ...styles.card,
+              marginBottom: "1rem",
+              borderColor: "rgba(239,68,68,0.35)",
+              color: "#fca5a5",
+            }}
+          >
+            {favoriteError}
+            <button
+              type="button"
+              onClick={() => setFavoriteError("")}
+              style={{
+                ...styles.secondaryButton,
+                marginLeft: "12px",
+                padding: "5px 10px",
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {favoritesLoading && (
+          <p style={styles.muted}>Loading your favorites...</p>
+        )}
 
         {!loading && !error && (
           <p style={{ ...styles.muted, marginBottom: "1.25rem" }}>
             Showing{" "}
-            <strong style={{ color: "#f97316" }}>{exercises.length}</strong>{" "}
-            exercise{exercises.length === 1 ? "" : "s"}
+            <strong style={{ color: "#f97316" }}>
+              {displayedExercises.length}
+            </strong>{" "}
+            {showFavoritesOnly ? "favorite" : "exercise"}
+            {displayedExercises.length === 1 ? "" : "s"}
+            {" · "}
+            {favorites.length} saved
           </p>
         )}
 
@@ -240,6 +389,7 @@ export default function ExerciseLibraryPage() {
           </p>
         ) : error ? (
           <div
+            role="alert"
             style={{
               ...styles.card,
               borderColor: "rgba(239,68,68,0.3)",
@@ -247,19 +397,9 @@ export default function ExerciseLibraryPage() {
             }}
           >
             {error}
-          </div>
-        ) : exercises.length === 0 ? (
-          <div style={{ ...styles.card, textAlign: "center", padding: "3rem 1rem" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🔎</div>
-            <h2 style={{ fontSize: "1.2rem", margin: 0 }}>
-              No exercises found
-            </h2>
-            <p style={styles.muted}>
-              Try another search or clear your filters.
-            </p>
             <button
               type="button"
-              style={styles.button}
+              style={{ ...styles.button, marginLeft: "12px" }}
               onClick={() => {
                 setSearch("");
                 setCategory("");
@@ -268,199 +408,280 @@ export default function ExerciseLibraryPage() {
               Clear filters
             </button>
           </div>
+        ) : displayedExercises.length === 0 ? (
+          <div
+            style={{
+              ...styles.card,
+              textAlign: "center",
+              padding: "3rem 1rem",
+            }}
+          >
+            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>
+              {showFavoritesOnly ? "♡" : "🔎"}
+            </div>
+            <h2 style={{ fontSize: "1.2rem", margin: 0 }}>
+              {showFavoritesOnly
+                ? "No favorite exercises found"
+                : "No exercises found"}
+            </h2>
+            <p style={styles.muted}>
+              {showFavoritesOnly
+                ? "Tap the heart on an exercise to save it here."
+                : "Try another search or clear your filters."}
+            </p>
+            <button
+              type="button"
+              style={styles.button}
+              onClick={clearFilters}
+            >
+              {showFavoritesOnly ? "Show all exercises" : "Clear filters"}
+            </button>
+          </div>
         ) : (
           <div style={styles.grid}>
-            {exercises.map((exercise) => (
-              <article
-                key={exercise.id || exercise._id || exercise.name}
-                className="exercise-card"
-                style={{
-                  ...styles.card,
-                  animation: "exerciseFadeUp 0.45s ease both",
-                }}
-              >
-                <div
+            {displayedExercises.map((exercise) => {
+              const exerciseId = String(exercise.id ?? exercise._id ?? "");
+              const isFavorite = favorites.includes(exerciseId);
+              const isSaving = Boolean(favoriteLoading[exerciseId]);
+
+              return (
+                <article
+                  key={exerciseId || exercise.name}
+                  className="exercise-card"
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "8px",
-                    marginBottom: "1rem",
+                    ...styles.card,
+                    animation: "exerciseFadeUp 0.45s ease both",
                   }}
                 >
-                  <span
+                  <div
                     style={{
-                      background: "rgba(249,115,22,0.12)",
-                      color: "#fb923c",
-                      border: "1px solid rgba(249,115,22,0.18)",
-                      borderRadius: "20px",
-                      padding: "5px 11px",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "8px",
+                      marginBottom: "1rem",
                     }}
                   >
-                    {exercise.category || "General"}
-                  </span>
+                    <span
+                      style={{
+                        background: "rgba(249,115,22,0.12)",
+                        color: "#fb923c",
+                        border: "1px solid rgba(249,115,22,0.18)",
+                        borderRadius: "20px",
+                        padding: "5px 11px",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {exercise.category || "General"}
+                    </span>
 
-                  <span style={{ ...styles.muted, fontSize: "0.73rem" }}>
-                    {exercise.difficulty || "All levels"}
-                  </span>
-                </div>
+                    <span style={{ ...styles.muted, fontSize: "0.73rem" }}>
+                      {exercise.difficulty || "All levels"}
+                    </span>
+                  </div>
 
-                <h2
-                  style={{
-                    fontSize: "1.3rem",
-                    fontWeight: 800,
-                    letterSpacing: "-0.025em",
-                    margin: "0 0 1.1rem",
-                  }}
-                >
-                  {exercise.name}
-                </h2>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: "12px",
+                    }}
+                  >
+                    <h2
+                      style={{
+                        fontSize: "1.3rem",
+                        fontWeight: 800,
+                        letterSpacing: "-0.025em",
+                        margin: "0 0 1.1rem",
+                      }}
+                    >
+                      {exercise.name}
+                    </h2>
 
-                {Array.isArray(exercise.muscleGroups) &&
-                  exercise.muscleGroups.length > 0 && (
-                    <div style={{ marginBottom: "1rem" }}>
-                      <div style={styles.sectionLabel}>Muscle groups</div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: "6px",
-                        }}
-                      >
-                        {exercise.muscleGroups.map((muscle) => (
-                          <span
-                            key={muscle}
-                            style={{
-                              padding: "5px 8px",
-                              background: "rgba(255,255,255,0.045)",
-                              border: "1px solid rgba(255,255,255,0.06)",
-                              borderRadius: "7px",
-                              fontSize: "0.72rem",
-                              color: "rgba(255,255,255,0.7)",
-                            }}
-                          >
-                            {muscle}
-                          </span>
-                        ))}
+                    <button
+                      type="button"
+                      onClick={() => toggleFavorite(exercise)}
+                      disabled={isSaving || favoritesLoading}
+                      aria-pressed={isFavorite}
+                      aria-label={
+                        isFavorite
+                          ? `Remove ${exercise.name} from favorites`
+                          : `Add ${exercise.name} to favorites`
+                      }
+                      title={
+                        isFavorite
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }
+                      style={{
+                        background: isFavorite
+                          ? "rgba(249,115,22,0.12)"
+                          : "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: "10px",
+                        padding: "6px 11px",
+                        color: isFavorite ? "#f97316" : "#a1a1aa",
+                        cursor: isSaving || favoritesLoading
+                          ? "wait"
+                          : "pointer",
+                        fontSize: "1.4rem",
+                        lineHeight: 1.2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isSaving ? "…" : isFavorite ? "♥" : "♡"}
+                    </button>
+                  </div>
+
+                  {Array.isArray(exercise.muscleGroups) &&
+                    exercise.muscleGroups.length > 0 && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div style={styles.sectionLabel}>Muscle groups</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "6px",
+                          }}
+                        >
+                          {exercise.muscleGroups.map((muscle) => (
+                            <span
+                              key={muscle}
+                              style={{
+                                padding: "5px 8px",
+                                background: "rgba(255,255,255,0.045)",
+                                border: "1px solid rgba(255,255,255,0.06)",
+                                borderRadius: "7px",
+                                fontSize: "0.72rem",
+                                color: "rgba(255,255,255,0.7)",
+                              }}
+                            >
+                              {muscle}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                  {exercise.equipment && (
+                    <p style={{ ...styles.muted, marginBottom: "1rem" }}>
+                      <span style={{ color: "rgba(255,255,255,0.65)" }}>
+                        Equipment:{" "}
+                      </span>
+                      {exercise.equipment}
+                    </p>
                   )}
 
-                {exercise.equipment && (
-                  <p style={{ ...styles.muted, marginBottom: "1rem" }}>
-                    <span style={{ color: "rgba(255,255,255,0.65)" }}>
-                      Equipment:{" "}
-                    </span>
-                    {exercise.equipment}
-                  </p>
-                )}
-
-                {exercise.instructions && (
-                  <div
-                    style={{
-                      borderTop: "1px solid rgba(255,255,255,0.08)",
-                      paddingTop: "1rem",
-                      marginTop: "0.5rem",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        fontSize: "0.85rem",
-                        fontWeight: 700,
-                        margin: "0 0 0.75rem",
-                      }}
-                    >
-                      How to perform
-                    </h3>
-
-                    <ol
-                      style={{
-                        paddingLeft: "1.2rem",
-                        margin: 0,
-                        color: "rgba(255,255,255,0.55)",
-                        fontSize: "0.8rem",
-                        lineHeight: 1.8,
-                      }}
-                    >
-                      {(Array.isArray(exercise.instructions)
-                        ? exercise.instructions
-                        : [exercise.instructions]
-                      ).map((instruction, index) => (
-                        <li key={index} style={{ paddingLeft: "3px", marginBottom: "5px" }}>
-                          {instruction}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {exercise.tips && (
-                  <div
-                    style={{
-                      marginTop: "1.1rem",
-                      padding: "12px",
-                      borderRadius: "10px",
-                      background: "rgba(16,185,129,0.07)",
-                      border: "1px solid rgba(16,185,129,0.15)",
-                    }}
-                  >
+                  {exercise.instructions && (
                     <div
                       style={{
-                        color: "#10b981",
-                        fontSize: "0.7rem",
-                        fontWeight: 800,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        marginBottom: "5px",
+                        borderTop: "1px solid rgba(255,255,255,0.08)",
+                        paddingTop: "1rem",
+                        marginTop: "0.5rem",
                       }}
                     >
-                      ✓ Training tip
-                    </div>
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "rgba(255,255,255,0.68)",
-                        fontSize: "0.8rem",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {exercise.tips}
-                    </p>
-                  </div>
-                )}
-
-                {Array.isArray(exercise.mistakes) &&
-                  exercise.mistakes.length > 0 && (
-                    <details style={{ marginTop: "1rem" }}>
-                      <summary
+                      <h3
                         style={{
-                          cursor: "pointer",
-                          color: "#fca5a5",
-                          fontSize: "0.8rem",
+                          fontSize: "0.85rem",
                           fontWeight: 700,
+                          margin: "0 0 0.75rem",
                         }}
                       >
-                        Common mistakes
-                      </summary>
-                      <ul
+                        How to perform
+                      </h3>
+
+                      <ol
                         style={{
                           paddingLeft: "1.2rem",
+                          margin: 0,
                           color: "rgba(255,255,255,0.55)",
                           fontSize: "0.8rem",
                           lineHeight: 1.8,
                         }}
                       >
-                        {exercise.mistakes.map((mistake) => (
-                          <li key={mistake}>{mistake}</li>
+                        {(Array.isArray(exercise.instructions)
+                          ? exercise.instructions
+                          : [exercise.instructions]
+                        ).map((instruction, index) => (
+                          <li
+                            key={index}
+                            style={{ paddingLeft: "3px", marginBottom: "5px" }}
+                          >
+                            {instruction}
+                          </li>
                         ))}
-                      </ul>
-                    </details>
+                      </ol>
+                    </div>
                   )}
-              </article>
-            ))}
+
+                  {exercise.tips && (
+                    <div
+                      style={{
+                        marginTop: "1.1rem",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        background: "rgba(16,185,129,0.07)",
+                        border: "1px solid rgba(16,185,129,0.15)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "#10b981",
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          marginBottom: "5px",
+                        }}
+                      >
+                        ✓ Training tip
+                      </div>
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "rgba(255,255,255,0.68)",
+                          fontSize: "0.8rem",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {exercise.tips}
+                      </p>
+                    </div>
+                  )}
+
+                  {Array.isArray(exercise.mistakes) &&
+                    exercise.mistakes.length > 0 && (
+                      <details style={{ marginTop: "1rem" }}>
+                        <summary
+                          style={{
+                            cursor: "pointer",
+                            color: "#fca5a5",
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Common mistakes
+                        </summary>
+                        <ul
+                          style={{
+                            paddingLeft: "1.2rem",
+                            color: "rgba(255,255,255,0.55)",
+                            fontSize: "0.8rem",
+                            lineHeight: 1.8,
+                          }}
+                        >
+                          {exercise.mistakes.map((mistake) => (
+                            <li key={mistake}>{mistake}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                </article>
+              );
+            })}
           </div>
         )}
       </main>

@@ -8,6 +8,7 @@ import goalRoutes from "./routes/goalRoutes.js";
 import measurementRoutes from "./routes/measurementRoutes.js";
 import connectDB from "./config/db.js";
 import exerciseRoutes from "./routes/exerciseRoutes.js";
+import favoriteRoutes from "./routes/favoriteRoutes.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/workouts", workoutRoutes);
 app.use("/goals", goalRoutes);
 app.use("/measurements", measurementRoutes);
 app.use("/exercises", exerciseRoutes);
+app.use("/favorites", favoriteRoutes);
 
 const startServer = async () => {
   try {
