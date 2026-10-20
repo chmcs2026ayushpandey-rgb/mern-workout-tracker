@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
 import { useToast } from "../context/ToastContext";
 import { WORKOUT_TYPES, TYPE_COLORS, TYPE_ICONS, fieldStyle, getErrorMessage } from "../lib/utils";
+import ExerciseEditor, { exercisesToPayload } from "../components/ExerciseEditor";
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function CreatePage() {
     date: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [exercises, setExercises] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +47,7 @@ export default function CreatePage() {
         ...(form.distance && { distance: Number(form.distance) }),
         ...(form.calories && { calories: Number(form.calories) }),
         ...(form.notes.trim() && { notes: form.notes.trim() }),
+        exercises: exercisesToPayload(exercises),
       });
       toast.success("Workout logged");
       navigate("/");
@@ -56,14 +59,7 @@ export default function CreatePage() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        padding: "3rem 1.5rem",
-        fontFamily: "'Syne', sans-serif",
-      }}
-    >
+    <div style={{ display: "flex", justifyContent: "center", padding: "3rem 1.5rem", fontFamily: "'Syne', sans-serif" }}>
       <div style={{ width: "100%", maxWidth: "560px" }}>
         <button
           onClick={() => navigate("/")}
@@ -170,6 +166,10 @@ export default function CreatePage() {
                 value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} />
             </Field>
           </div>
+
+          <Field label="🏋️ Exercises & Sets (optional)">
+            <ExerciseEditor exercises={exercises} onChange={setExercises} />
+          </Field>
 
           <Field label="📝 Notes (optional)">
             <textarea rows={3} placeholder="How did it feel? Any PRs?"

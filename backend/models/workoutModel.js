@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const setSchema = new mongoose.Schema(
+  {
+    weight: { type: Number, required: true, min: 0 },
+    reps: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
+const exerciseSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    sets: { type: [setSchema], default: [] },
+  },
+  { _id: false }
+);
+
 const workoutSchema = new mongoose.Schema(
   {
     userId: {
@@ -8,27 +24,13 @@ const workoutSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    type: {
-      type: String,
-      required: true,
-    },
-    duration: {
-      type: Number, // minutes
-      required: true,
-    },
-    distance: {
-      type: Number, // km
-    },
-    calories: {
-      type: Number,
-    },
-    date: {
-      type: Date,
-      required: true,
-    },
-    notes: {
-      type: String,
-    },
+    type: { type: String, required: true },
+    duration: { type: Number, required: true }, // minutes
+    distance: { type: Number }, // km
+    calories: { type: Number },
+    date: { type: Date, required: true },
+    notes: { type: String },
+    exercises: { type: [exerciseSchema], default: [] },
   },
   { timestamps: true }
 );

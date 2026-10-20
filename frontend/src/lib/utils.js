@@ -47,3 +47,13 @@ export const formatDate = (date) => new Date(date).toLocaleDateString();
 
 export const getErrorMessage = (err, fallback = "Something went wrong") =>
   err.response?.data?.message || err.message || fallback;
+// Total volume (kg × reps across all sets)
+export const calcVolume = (workout) =>
+  (workout.exercises || []).reduce(
+    (total, ex) => total + ex.sets.reduce((s, set) => s + set.weight * set.reps, 0),
+    0
+  );
+
+// Heaviest weight lifted in any set
+export const calcMaxWeight = (workout) =>
+  Math.max(0, ...(workout.exercises || []).flatMap((ex) => ex.sets.map((s) => s.weight)));

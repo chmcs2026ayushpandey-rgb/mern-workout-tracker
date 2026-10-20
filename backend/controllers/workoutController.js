@@ -7,8 +7,8 @@ const ALLOWED_FIELDS = [
   "calories",
   "date",
   "notes",
+  "exercises",
 ];
-
 // Only accept known fields, so clients can't set userId themselves
 const pick = (body = {}) =>
   Object.fromEntries(

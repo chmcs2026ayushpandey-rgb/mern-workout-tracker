@@ -1,7 +1,8 @@
-                                                    import { useState } from "react";
+import { useState } from "react";
 import api from "../lib/axios";
 import { useToast } from "../context/ToastContext";
 import { WORKOUT_TYPES, TYPE_COLORS, fieldStyle, getErrorMessage } from "../lib/utils";
+import ExerciseEditor, { exercisesFromWorkout, exercisesToPayload } from "./ExerciseEditor";
 
 export default function EditWorkoutModal({ workout, onClose, onSave }) {
   const toast = useToast();
@@ -13,6 +14,7 @@ export default function EditWorkoutModal({ workout, onClose, onSave }) {
     date: new Date(workout.date).toISOString().split("T")[0],
     notes: workout.notes || "",
   });
+  const [exercises, setExercises] = useState(() => exercisesFromWorkout(workout));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,6 +34,7 @@ export default function EditWorkoutModal({ workout, onClose, onSave }) {
         distance: form.distance ? Number(form.distance) : null,
         calories: form.calories ? Number(form.calories) : null,
         notes: form.notes.trim(),
+        exercises: exercisesToPayload(exercises),
       };
       const res = await api.put(`/workouts/${workout._id}`, payload);
       toast.success("Workout updated");
@@ -63,7 +66,9 @@ export default function EditWorkoutModal({ workout, onClose, onSave }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: "520px",
+          maxWidth: "560px",
+          maxHeight: "90vh",
+          overflowY: "auto",
           background: "linear-gradient(145deg, #13131f, #1a1a2e)",
           border: `1px solid ${accent}33`,
           borderRadius: "18px",
@@ -131,6 +136,10 @@ export default function EditWorkoutModal({ workout, onClose, onSave }) {
           </Field>
         </div>
 
+        <Field label="Exercises & Sets">
+          <ExerciseEditor exercises={exercises} onChange={setExercises} />
+        </Field>
+
         <Field label="Notes">
           <textarea rows={3} style={{ ...fieldStyle, resize: "vertical" }} value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -197,4 +206,3 @@ function Field({ label, children }) {
     </div>
   );
 }
-                                                                                                                                                         
