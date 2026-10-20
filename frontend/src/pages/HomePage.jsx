@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import WorkoutCard from "../components/WorkoutCard";
+import api from "../lib/axios";
 
 const ALL_TYPES = ["All", "Running", "Cycling", "Swimming", "Weightlifting", "Yoga", "HIIT", "Walking", "Other"];
 
@@ -10,10 +11,16 @@ export default function HomePage() {
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/workouts`)
-      .then((r) => r.json())
-      .then((data) => { setWorkouts(data); setLoading(false); })
-      .catch(() => { setError("Failed to load workouts"); setLoading(false); });
+    api
+      .get("/workouts")
+      .then((res) => {
+        setWorkouts(Array.isArray(res.data) ? res.data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load workouts");
+        setLoading(false);
+      });
   }, []);
 
   const handleDelete = (id) => setWorkouts((w) => w.filter((x) => x._id !== id));

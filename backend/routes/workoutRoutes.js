@@ -6,13 +6,18 @@ import {
   updateWorkout,
   deleteWorkout,
 } from "../controllers/workoutController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", createWorkout);
-router.put("/:id", updateWorkout);
-router.get("/", getWorkouts);
-router.get("/:id", getWorkoutById);
-router.delete("/:id", deleteWorkout);
+// every workout route requires a valid token
+router.use(protect);
+
+router.route("/").get(getWorkouts).post(createWorkout);
+router
+  .route("/:id")
+  .get(getWorkoutById)
+  .put(updateWorkout)
+  .delete(deleteWorkout);
 
 export default router;

@@ -3,19 +3,21 @@ import mongoose from "mongoose";
 const workoutSchema = new mongoose.Schema(
   {
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
+      index: true,
     },
     type: {
       type: String,
       required: true,
     },
     duration: {
-      type: Number, // in minutes
+      type: Number, // minutes
       required: true,
     },
     distance: {
-      type: Number, // in km
+      type: Number, // km
     },
     calories: {
       type: Number,
@@ -28,7 +30,7 @@ const workoutSchema = new mongoose.Schema(
       type: String,
     },
   },
-  { timestamps: true } // createdAt & updatedAt
+  { timestamps: true }
 );
 
 export default mongoose.model("Workout", workoutSchema);
