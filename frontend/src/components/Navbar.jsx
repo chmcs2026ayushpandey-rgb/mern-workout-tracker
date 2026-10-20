@@ -6,7 +6,6 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // hide the navbar on the login and register pages
   if (!user) return null;
 
   const handleLogout = () => {
@@ -14,7 +13,24 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  const isHome = location.pathname === "/";
+  const navLink = (to, label) => {
+    const active = location.pathname === to;
+    return (
+      <Link
+        to={to}
+        style={{
+          color: active ? "#f97316" : "rgba(255,255,255,0.6)",
+          textDecoration: "none",
+          fontWeight: 700,
+          padding: "8px 12px",
+          borderRadius: "8px",
+          background: active ? "rgba(249,115,22,0.1)" : "transparent",
+        }}
+      >
+        {label}
+      </Link>
+    );
+  };
 
   return (
     <nav
@@ -22,6 +38,8 @@ export default function Navbar() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        flexWrap: "wrap",
+        gap: "10px",
         padding: "1rem 1.5rem",
         background: "linear-gradient(90deg, #1a1640, #2a1a3e)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
@@ -49,20 +67,10 @@ export default function Navbar() {
         </span>
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <Link
-          to="/"
-          style={{
-            color: isHome ? "#f97316" : "rgba(255,255,255,0.6)",
-            textDecoration: "none",
-            fontWeight: 700,
-            padding: "8px 14px",
-            borderRadius: "8px",
-            background: isHome ? "rgba(249,115,22,0.1)" : "transparent",
-          }}
-        >
-          Home
-        </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        {navLink("/", "Home")}
+        {navLink("/goals", "Goals")}
+        {navLink("/body", "Body")}
 
         <Link
           to="/create"
@@ -100,4 +108,3 @@ export default function Navbar() {
     </nav>
   );
 }
-  

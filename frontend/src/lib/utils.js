@@ -166,3 +166,51 @@ export const findPRs = (workouts) => {
 
   return prs;
 };
+// ---------- Goals ----------
+
+// Best single-set weight for an exercise across all workouts (name match ignores case)
+export const bestWeightFor = (workouts, name) => {
+  const key = (name || "").trim().toLowerCase();
+  let best = 0;
+  workouts.forEach((w) =>
+    (w.exercises || []).forEach((ex) => {
+      if (ex.name.trim().toLowerCase() === key) {
+        ex.sets.forEach((s) => {
+          if (s.weight > best) best = s.weight;
+        });
+      }
+    })
+  );
+  return best;
+};
+
+// 0–100 progress from the starting value toward the target (works for gaining and losing)
+export const goalProgress = (start, current, target) => {
+  if (target === start) return current === target ? 100 : 0;
+  const pct = ((current - start) / (target - start)) * 100;
+  return Math.max(0, Math.min(100, Math.round(pct)));
+};
+
+// ---------- Body metrics ----------
+
+export const calcBMI = (weightKg, heightCm) => {
+  const m = heightCm / 100;
+  return weightKg / (m * m);
+};
+
+export const bmiCategory = (bmi) =>
+  bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese";
+
+// Mifflin-St Jeor BMR, multiplied by an activity factor
+export const calcTDEE = ({ weightKg, heightCm, age, gender, activity }) => {
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
+  const bmr = gender === "male" ? base + 5 : base - 161;
+  return Math.round(bmr * activity);
+};
+
+export const ACTIVITY_LEVELS = [
+  { label: "Sedentary (desk job, little exercise)", value: 1.2 },
+  { label: "Light (1–3 days a week)", value: 1.375 },
+  { label: "Moderate (3–5 days a week)", value: 1.55 },
+  { label: "Very active (6–7 days a week)", value: 1.725 },
+];
