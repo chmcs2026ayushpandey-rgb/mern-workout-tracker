@@ -6,7 +6,7 @@ A full-stack workout tracking application built with the MERN stack (MongoDB, Ex
 
 ## 🌐 Live Demo
 
-- **Frontend:** https://workout-tracker-frontend-3g4i.onrender.com
+- **Frontend:** https://workout-tracker-ejqz.onrender.com
 - **Backend API:** https://workout-tracker-backend-p6m7.onrender.com/workouts
 - **GitHub:** https://github.com/chmcs2026ayushpandey-rgb/mern-workout-tracker
 
