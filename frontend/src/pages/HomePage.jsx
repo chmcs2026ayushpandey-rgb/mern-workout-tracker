@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WorkoutCard from "../components/WorkoutCard";
 import ProgressChart from "../components/ProgressChart";
+import StatsPanel from "../components/StatsPanel";
 import api from "../lib/axios";
-import { WORKOUT_TYPES, calcVolume } from "../lib/utils";
+import { WORKOUT_TYPES, calcVolume, fieldStyle, findPRs, inDateRange } from "../lib/utils";
 
 const ALL_TYPES = ["All", ...WORKOUT_TYPES];
+
+const dateInputStyle = {
+  ...fieldStyle,
+  width: "auto",
+  padding: "7px 10px",
+  colorScheme: "dark",
+};
 
 export default function HomePage() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("All");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   useEffect(() => {
     api
@@ -31,13 +41,21 @@ export default function HomePage() {
   const handleUpdate = (updated) =>
     setWorkouts((w) => w.map((x) => (x._id === updated._id ? updated : x)));
 
-  const filtered =
-    filter === "All" ? workouts : workouts.filter((w) => w.type === filter);
+  // PRs are calculated from the full history, not the filtered list
+  const prs = useMemo(() => findPRs(workouts), [workouts]);
+
+  const filtered = workouts.filter(
+    (w) =>
+      (filter === "All" || w.type === filter) &&
+      inDateRange(w.date, from, to)
+  );
 
   const totalMinutes = workouts.reduce((s, w) => s + (Number(w.duration) || 0), 0);
   const totalCalories = workouts.reduce((s, w) => s + (Number(w.calories) || 0), 0);
   const totalDistance = workouts.reduce((s, w) => s + (Number(w.distance) || 0), 0);
   const totalVolume = workouts.reduce((s, w) => s + calcVolume(w), 0);
+
+  const hasDateFilter = from || to;
 
   return (
     <div
@@ -136,12 +154,14 @@ export default function HomePage() {
           ))}
         </div>
 
+        <StatsPanel workouts={workouts} />
+
         <div
           style={{
             display: "flex",
             gap: "8px",
             flexWrap: "wrap",
-            marginBottom: "1.75rem",
+            marginBottom: "1rem",
             animation: "fadeUp 0.6s ease 0.2s both",
           }}
         >
@@ -169,6 +189,44 @@ export default function HomePage() {
               {t}
             </button>
           ))}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: "1.75rem",
+          }}
+        >
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Date
+          </span>
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={dateInputStyle} />
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}>to</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={dateInputStyle} />
+          {hasDateFilter && (
+            <button
+              onClick={() => {
+                setFrom("");
+                setTo("");
+              }}
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.15)",
+                color: "rgba(255,255,255,0.6)",
+                borderRadius: "8px",
+                padding: "6px 12px",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              Clear dates
+            </button>
+          )}
         </div>
 
         <ProgressChart workouts={workouts} />
@@ -207,7 +265,9 @@ export default function HomePage() {
           <div style={{ textAlign: "center", padding: "5rem 0", animation: "fadeUp 0.5s ease both" }}>
             <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🏋️‍♂️</div>
             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "1.1rem", fontWeight: 600 }}>
-              {filter === "All" ? "No workouts yet. Start logging!" : `No ${filter} workouts found.`}
+              {workouts.length === 0
+                ? "No workouts yet. Start logging!"
+                : "No workouts match these filters."}
             </p>
           </div>
         )}
@@ -218,6 +278,7 @@ export default function HomePage() {
               <WorkoutCard
                 key={workout._id}
                 workout={workout}
+                prs={prs[workout._id] || []}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
               />

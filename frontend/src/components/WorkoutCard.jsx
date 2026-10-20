@@ -12,7 +12,7 @@ import {
 } from "../lib/utils";
 import EditWorkoutModal from "./EditWorkoutModal";
 
-export default function WorkoutCard({ workout, onDelete, onUpdate }) {
+export default function WorkoutCard({ workout, prs = [], onDelete, onUpdate }) {
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -56,6 +56,27 @@ export default function WorkoutCard({ workout, onDelete, onUpdate }) {
           {formatDate(workout.date)}
         </span>
       </div>
+
+      {prs.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+          {prs.map((p) => (
+            <span
+              key={p.exercise}
+              style={{
+                background: "rgba(249,115,22,0.12)",
+                border: "1px solid rgba(249,115,22,0.4)",
+                color: "#f97316",
+                borderRadius: "999px",
+                padding: "3px 10px",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+              }}
+            >
+              🏆 PR · {p.exercise} {p.weight} kg
+            </span>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
         <Stat label="Duration" value={`${workout.duration} min`} />
