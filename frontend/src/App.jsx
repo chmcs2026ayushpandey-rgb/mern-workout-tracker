@@ -1,96 +1,106 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import { ToastProvider } from "./context/ToastContext";
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
 
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+
+import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
+import ExerciseLibraryPage from "./pages/ExerciseLibraryPage";
+import BodyPage from "./pages/BodyPage";
+import GoalsPage from "./pages/GoalsPage";
 import CreatePage from "./pages/CreatePage";
 import WorkoutDetailPage from "./pages/WorkoutDetailPage";
-import GoalsPage from "./pages/GoalsPage";
-import BodyPage from "./pages/BodyPage";
-import AuthPage from "./pages/AuthPage";
-import ExerciseLibraryPage from "./pages/ExerciseLibraryPage";
+import RemindersPage from "./pages/RemindersPage";
 
-function App() {
+function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function AppRoutes() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <Router>
-          <div style={{ minHeight: "100vh", background: "#0a0a14" }}>
-            <Navbar />
+    <Routes>
+      <Route path="/login" element={<AuthPage mode="login" />} />
+      <Route path="/register" element={<AuthPage mode="register" />} />
 
-            <Routes>
-              <Route
-                path="/login"
-                element={<AuthPage mode="login" />}
-              />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/register"
-                element={<AuthPage mode="register" />}
-              />
+      <Route
+        path="/exercises"
+        element={
+          <ProtectedRoute>
+            <ExerciseLibraryPage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                }
-              />
+      <Route
+        path="/body"
+        element={
+          <ProtectedRoute>
+            <BodyPage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/create"
-                element={
-                  <ProtectedRoute>
-                    <CreatePage />
-                  </ProtectedRoute>
-                }
-              />
+      <Route
+        path="/goals"
+        element={
+          <ProtectedRoute>
+            <GoalsPage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/workout/:id"
-                element={
-                  <ProtectedRoute>
-                    <WorkoutDetailPage />
-                  </ProtectedRoute>
-                }
-              />
+      <Route
+        path="/create"
+        element={
+          <ProtectedRoute>
+            <CreatePage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/goals"
-                element={
-                  <ProtectedRoute>
-                    <GoalsPage />
-                  </ProtectedRoute>
-                }
-              />
+      <Route
+        path="/workouts/:id"
+        element={
+          <ProtectedRoute>
+            <WorkoutDetailPage />
+          </ProtectedRoute>
+        }
+      />
 
-              <Route
-                path="/body"
-                element={
-                  <ProtectedRoute>
-                    <BodyPage />
-                  </ProtectedRoute>
-                }
-              />
+      <Route
+        path="/reminders"
+        element={
+          <ProtectedRoute>
+            <RemindersPage />
+          </ProtectedRoute>
+        }
+      />
 
-              {/* Exercise Library */}
-              <Route
-                path="/exercises"
-                element={
-                  <ProtectedRoute>
-                    <ExerciseLibraryPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
-      </ToastProvider>
-    </AuthProvider>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
